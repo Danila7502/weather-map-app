@@ -77,6 +77,12 @@ export default function App() {
     return arrows[dir.toLowerCase()] || '●';
   };
 
+  const getPressureColor = (pressure) => {
+    if (pressure < 745) return '#FF6B6B';
+    if (pressure <= 765) return '#6BCB77';
+    return '#4D96FF';
+  };
+
   const renderMarkers = () => {
     return cities.map(city => {
       const weather = weatherData[city.id];
@@ -137,6 +143,21 @@ export default function App() {
           >
             <View style={[styles.cloudMarker, { opacity: opacity }]}>
               <Image source={require('./assets/cloud_marker.png')} style={styles.cloudIcon} />
+            </View>
+          </Marker>
+        );
+      }
+      
+      if (activeLayer === 'pressure') {
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description={`${weather.pressure} мм рт.ст.`}
+          >
+            <View style={[styles.pressureMarker, { backgroundColor: getPressureColor(weather.pressure) }]}>
+              <Text style={styles.pressureText}>{weather.pressure}</Text>
             </View>
           </Marker>
         );
@@ -332,6 +353,25 @@ const styles = StyleSheet.create({
   cloudIcon: {
     width: 30,
     height: 30,
+  },
+  pressureMarker: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  pressureText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   center: {
     flex: 1,
