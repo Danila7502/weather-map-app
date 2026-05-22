@@ -1,16 +1,49 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { cities } from './cities';
 
 export default function App() {
+  const mapRef = useRef(null);
+  
+  const centerMap = () => {
+    mapRef.current.animateToRegion({
+      latitude: 55.751244,
+      longitude: 37.618423,
+      latitudeDelta: 5,
+      longitudeDelta: 5,
+    }, 1000);
+  };
+  
+  const showAllMarkers = () => {
+    mapRef.current.fitToCoordinates(
+      cities.map(c => ({ latitude: c.latitude, longitude: c.longitude })),
+      {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
+      }
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Прогноз погоды</Text>
       </View>
+      
+      <View style={styles.leftButtons}>
+        <TouchableOpacity style={styles.button} onPress={centerMap}>
+          <Image source={require('./assets/center.png')} style={styles.icon} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={showAllMarkers}>
+          <Image source={require('./assets/show_all.png')} style={styles.icon} />
+        </TouchableOpacity>
+      </View>
+      
       <View style={styles.content}>
         <MapView 
+          ref={mapRef}
+          provider={PROVIDER_DEFAULT}
           style={styles.map}
           initialRegion={{
             latitude: 55.751244,
@@ -27,7 +60,13 @@ export default function App() {
                 longitude: city.longitude,
               }}
               title={city.name}
-            />
+              description="Нажмите для погоды"
+            >
+              <View style={styles.customMarker}>
+                <View style={styles.markerDot} />
+                <Text style={styles.markerText}>{city.name}</Text>
+              </View>
+            </Marker>
           ))}
         </MapView>
       </View>
@@ -52,10 +91,60 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
+  leftButtons: {
+    position: 'absolute',
+    top: 100,
+    left: 10,
+    zIndex: 1,
+  },
+  button: {
+    backgroundColor: 'white',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  icon: {
+    width: 30,
+    height: 30,
+  },
   content: {
     flex: 1,
   },
   map: {
     flex: 1,
+  },
+  customMarker: {
+    alignItems: 'center',
+  },
+  markerDot: {
+    width: 10,
+    height: 10,
+    backgroundColor: 'red',
+    borderRadius: 5,
+    marginBottom: 2,
+  },
+  markerText: {
+    backgroundColor: 'white',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });
