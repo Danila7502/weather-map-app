@@ -1,15 +1,16 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { cities } from './cities';
 import LayerPanel from './LayerPanel';
-import { getYandexWeather, getWeatherIcon } from './weatherAPI';
+import { getYandexWeatherWithCache, getWeatherIcon } from './weatherAPI';
 
 export default function App() {
   const mapRef = useRef(null);
   const [activeLayer, setActiveLayer] = useState(null);
   const [weatherData, setWeatherData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const centerMap = () => {
     mapRef.current.animateToRegion({
@@ -32,23 +33,34 @@ export default function App() {
 
   useEffect(() => {
     const loadWeather = async () => {
-      setLoading(true);
-      const data = {};
-      for (const city of cities) {
-        const weather = await getYandexWeather(city.latitude, city.longitude);
-        if (weather) {
-          data[city.id] = {
-            temp: Math.round(weather.fact.temp),
-            condition: weather.fact.condition,
-            windSpeed: weather.fact.wind_speed,
-            windDir: weather.fact.wind_dir,
-            pressure: weather.fact.pressure_mm,
-            clouds: weather.fact.cloudness,
-          };
+      try {
+        setLoading(true);
+        setError(null);
+        const data = {};
+        for (const city of cities) {
+          const weather = await getYandexWeatherWithCache(city.latitude, city.longitude);
+          if (weather) {
+            data[city.id] = {
+              temp: Math.round(weather.fact.temp),
+              condition: weather.fact.condition,
+              windSpeed: weather.fact.wind_speed,
+              windDir: weather.fact.wind_dir,
+              pressure: weather.fact.pressure_mm,
+              clouds: weather.fact.cloudness,
+            };
+          } else {
+            // Если не удалось получить данные для города
+            console.warn(`Не удалось загрузить погоду для ${city.name}`);
+          }
         }
+        setWeatherData(data);
+      } catch (err) {
+        setError('Ошибка загрузки погодных данных');
+        Alert.alert('Ошибка', 'Не удалось загрузить данные о погоде. Проверьте подключение к интернету и API ключ.');
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      setWeatherData(data);
-      setLoading(false);
     };
     loadWeather();
   }, []);
@@ -86,7 +98,22 @@ export default function App() {
   const renderMarkers = () => {
     return cities.map(city => {
       const weather = weatherData[city.id];
-      if (!weather) return null;
+      if (!weather) {
+        // Показываем обычный маркер, если нет данных о погоде
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description="Данные о погоде недоступны"
+          >
+            <View style={styles.customMarker}>
+              <View style={styles.markerDot} />
+              <Text style={styles.markerText}>{city.name}</Text>
+            </View>
+          </Marker>
+        );
+      }
       
       if (activeLayer === 'temp') {
         return (
@@ -168,7 +195,7 @@ export default function App() {
           key={city.id}
           coordinate={{ latitude: city.latitude, longitude: city.longitude }}
           title={city.name}
-          description="Нажмите для погоды"
+          description={`Температура: ${weather.temp}°C, Ветер: ${weather.windSpeed} м/с`}
         >
           <View style={styles.customMarker}>
             <View style={styles.markerDot} />
@@ -186,7 +213,21 @@ export default function App() {
           <Text style={styles.title}>Прогноз погоды</Text>
         </View>
         <View style={styles.center}>
-          <Text>Загрузка погоды...</Text>
+          <Text>Загрузка погодных данных...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error && Object.keys(weatherData).length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Прогноз погоды</Text>
+        </View>
+        <View style={styles.center}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorSubtext}>Проверьте подключение к интернету</Text>
         </View>
       </SafeAreaView>
     );
@@ -377,5 +418,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: 'red',
+    marginBottom: 10,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#666',
   },
 });
