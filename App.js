@@ -126,6 +126,22 @@ export default function App() {
         );
       }
       
+      if (activeLayer === 'clouds') {
+        const opacity = 0.2 + (weather.clouds * 0.7);
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description={`Облачность: ${Math.round(weather.clouds * 100)}%`}
+          >
+            <View style={[styles.cloudMarker, { opacity: opacity }]}>
+              <Image source={require('./assets/cloud_marker.png')} style={styles.cloudIcon} />
+            </View>
+          </Marker>
+        );
+      }
+      
       return (
         <Marker
           key={city.id}
@@ -302,6 +318,20 @@ const styles = StyleSheet.create({
   windSpeed: {
     fontSize: 12,
     color: '#333',
+  },
+  cloudMarker: {
+    backgroundColor: '#808080',
+    padding: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  cloudIcon: {
+    width: 30,
+    height: 30,
   },
   center: {
     flex: 1,
