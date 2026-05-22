@@ -25,39 +25,19 @@ export const getYandexWeather = async (lat, lon) => {
   }
 };
 
-// Функция с кэшированием
 export const getYandexWeatherWithCache = async (lat, lon) => {
-  const cacheKey = `weather_${lat}_${lon}`;
-  const cacheTimeKey = `${cacheKey}_time`;
-  
-  try {
-    const cached = await AsyncStorage.getItem(cacheKey);
-    const cacheTime = await AsyncStorage.getItem(cacheTimeKey);
-    
-    // Если кэш свежий (менее 10 минут)
-    if (cached && cacheTime && Date.now() - parseInt(cacheTime) < 600000) {
-      console.log('Использую кэш для', lat, lon);
-      return JSON.parse(cached);
-    }
-    
-    // Получаем новые данные
-    const data = await getYandexWeather(lat, lon);
-    if (data) {
-      await AsyncStorage.setItem(cacheKey, JSON.stringify(data));
-      await AsyncStorage.setItem(cacheTimeKey, Date.now().toString());
-    }
-    return data;
-  } catch (error) {
-    console.error('Ошибка кэширования:', error);
-    // Если ошибка с кэшем, пробуем получить данные без кэша
-    return await getYandexWeather(lat, lon);
-  }
+  console.log('Загрузка погоды для:', lat, lon);
+  return await getYandexWeather(lat, lon);
 };
 
-// Функция для иконок погоды
+import sunIcon from './assets/sun_marker.png';
+import rainIcon from './assets/rain_marker.png';
+import snowIcon from './assets/snow_marker.png';
+import cloudIcon from './assets/cloud_marker.png';
+
 export const getWeatherIcon = (condition) => {
-  if (condition.includes('rain')) return require('./assets/rain_marker.png');
-  if (condition.includes('snow')) return require('./assets/snow_marker.png');
-  if (condition === 'clear') return require('./assets/sun_marker.png');
-  return require('./assets/cloud_marker.png');
+  if (condition.includes('rain')) return rainIcon;
+  if (condition.includes('snow')) return snowIcon;
+  if (condition === 'clear') return sunIcon;
+  return cloudIcon;
 };
