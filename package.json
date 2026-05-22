@@ -14,9 +14,12 @@
     "expo-location": "^56.0.12",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-maps": "1.20.1",
-    "react-native-paper": "^5.15.2"
+    "react-native-paper": "^5.15.2",
+    "react-native-web": "^0.21.0",
+    "react-native-web-maps": "^0.3.0"
   },
   "private": true
 }
