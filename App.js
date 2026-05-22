@@ -69,6 +69,14 @@ export default function App() {
     return 'Без осадков';
   };
 
+  const getWindArrow = (dir) => {
+    const arrows = {
+      'n': '↓', 's': '↑', 'w': '→', 'e': '←',
+      'nw': '↙', 'ne': '↘', 'sw': '↗', 'se': '↖'
+    };
+    return arrows[dir.toLowerCase()] || '●';
+  };
+
   const renderMarkers = () => {
     return cities.map(city => {
       const weather = weatherData[city.id];
@@ -98,6 +106,22 @@ export default function App() {
             description={getPrecipDescription(weather.condition)}
           >
             <Image source={getWeatherIcon(weather.condition)} style={styles.precipIcon} />
+          </Marker>
+        );
+      }
+      
+      if (activeLayer === 'wind') {
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description={`${weather.windSpeed} м/с, ${weather.windDir}`}
+          >
+            <View style={styles.windMarker}>
+              <Text style={styles.windArrow}>{getWindArrow(weather.windDir)}</Text>
+              <Text style={styles.windSpeed}>{weather.windSpeed} м/с</Text>
+            </View>
           </Marker>
         );
       }
@@ -256,6 +280,28 @@ const styles = StyleSheet.create({
   precipIcon: {
     width: 40,
     height: 40,
+  },
+  windMarker: {
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 15,
+    alignItems: 'center',
+    minWidth: 60,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  windArrow: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  windSpeed: {
+    fontSize: 12,
+    color: '#333',
   },
   center: {
     flex: 1,
