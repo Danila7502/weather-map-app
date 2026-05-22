@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'r
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { cities } from './cities';
 import LayerPanel from './LayerPanel';
-import { getYandexWeather } from './weatherAPI';
+import { getYandexWeather, getWeatherIcon } from './weatherAPI';
 
 export default function App() {
   const mapRef = useRef(null);
@@ -30,7 +30,6 @@ export default function App() {
     );
   };
 
-  // Загрузка погоды для всех городов
   useEffect(() => {
     const loadWeather = async () => {
       setLoading(true);
@@ -54,7 +53,6 @@ export default function App() {
     loadWeather();
   }, []);
 
-  // Функция цвета температуры
   const getTempColor = (temp) => {
     if (temp <= -20) return '#8B00FF';
     if (temp <= -10) return '#0000FF';
@@ -65,13 +63,17 @@ export default function App() {
     return '#FF4500';
   };
 
-  // Рендер маркеров
+  const getPrecipDescription = (condition) => {
+    if (condition.includes('rain')) return 'Дождь';
+    if (condition.includes('snow')) return 'Снег';
+    return 'Без осадков';
+  };
+
   const renderMarkers = () => {
     return cities.map(city => {
       const weather = weatherData[city.id];
       if (!weather) return null;
       
-      // Слой температуры
       if (activeLayer === 'temp') {
         return (
           <Marker
@@ -87,7 +89,19 @@ export default function App() {
         );
       }
       
-      // Обычный маркер
+      if (activeLayer === 'precip') {
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description={getPrecipDescription(weather.condition)}
+          >
+            <Image source={getWeatherIcon(weather.condition)} style={styles.precipIcon} />
+          </Marker>
+        );
+      }
+      
       return (
         <Marker
           key={city.id}
@@ -238,6 +252,10 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  precipIcon: {
+    width: 40,
+    height: 40,
   },
   center: {
     flex: 1,
