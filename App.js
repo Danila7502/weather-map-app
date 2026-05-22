@@ -1,14 +1,15 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { cities } from './cities';
 import LayerPanel from './LayerPanel';
-import { useState } from 'react';
+import { getYandexWeather } from './weatherAPI';
 
 export default function App() {
   const mapRef = useRef(null);
-
   const [activeLayer, setActiveLayer] = useState(null);
+  const [weatherData, setWeatherData] = useState({});
+  const [loading, setLoading] = useState(true);
   
   const centerMap = () => {
     mapRef.current.animateToRegion({
@@ -28,6 +29,93 @@ export default function App() {
       }
     );
   };
+
+  // Загрузка погоды для всех городов
+  useEffect(() => {
+    const loadWeather = async () => {
+      setLoading(true);
+      const data = {};
+      for (const city of cities) {
+        const weather = await getYandexWeather(city.latitude, city.longitude);
+        if (weather) {
+          data[city.id] = {
+            temp: Math.round(weather.fact.temp),
+            condition: weather.fact.condition,
+            windSpeed: weather.fact.wind_speed,
+            windDir: weather.fact.wind_dir,
+            pressure: weather.fact.pressure_mm,
+            clouds: weather.fact.cloudness,
+          };
+        }
+      }
+      setWeatherData(data);
+      setLoading(false);
+    };
+    loadWeather();
+  }, []);
+
+  // Функция цвета температуры
+  const getTempColor = (temp) => {
+    if (temp <= -20) return '#8B00FF';
+    if (temp <= -10) return '#0000FF';
+    if (temp <= 0) return '#00BFFF';
+    if (temp <= 10) return '#87CEEB';
+    if (temp <= 20) return '#90EE90';
+    if (temp <= 30) return '#FFD700';
+    return '#FF4500';
+  };
+
+  // Рендер маркеров
+  const renderMarkers = () => {
+    return cities.map(city => {
+      const weather = weatherData[city.id];
+      if (!weather) return null;
+      
+      // Слой температуры
+      if (activeLayer === 'temp') {
+        return (
+          <Marker
+            key={city.id}
+            coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+            title={city.name}
+            description={`${weather.temp}°C`}
+          >
+            <View style={[styles.tempMarker, { backgroundColor: getTempColor(weather.temp) }]}>
+              <Text style={styles.tempText}>{weather.temp}°</Text>
+            </View>
+          </Marker>
+        );
+      }
+      
+      // Обычный маркер
+      return (
+        <Marker
+          key={city.id}
+          coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+          title={city.name}
+          description="Нажмите для погоды"
+        >
+          <View style={styles.customMarker}>
+            <View style={styles.markerDot} />
+            <Text style={styles.markerText}>{city.name}</Text>
+          </View>
+        </Marker>
+      );
+    });
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>Прогноз погоды</Text>
+        </View>
+        <View style={styles.center}>
+          <Text>Загрузка погоды...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -56,22 +144,7 @@ export default function App() {
             longitudeDelta: 5,
           }}
         >
-          {cities.map(city => (
-            <Marker
-              key={city.id}
-              coordinate={{
-                latitude: city.latitude,
-                longitude: city.longitude,
-              }}
-              title={city.name}
-              description="Нажмите для погоды"
-            >
-              <View style={styles.customMarker}>
-                <View style={styles.markerDot} />
-                <Text style={styles.markerText}>{city.name}</Text>
-              </View>
-            </Marker>
-          ))}
+          {renderMarkers()}
         </MapView>
       </View>
       <LayerPanel onLayerSelect={setActiveLayer} activeLayer={activeLayer} />
@@ -146,10 +219,29 @@ const styles = StyleSheet.create({
     color: '#333',
     borderWidth: 1,
     borderColor: '#ccc',
+  },
+  tempMarker: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'white',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  tempText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
